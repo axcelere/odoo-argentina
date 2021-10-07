@@ -9,13 +9,16 @@ class AccountTax(models.Model):
     amount_type = fields.Selection(
         selection_add=([
             ('partner_tax', 'Alícuota en el Partner'),
-        ])
+        ]),
+        ondelete={'partner_tax': lambda recs: recs.write({'amount_type': 'percent'})}
     )
     withholding_type = fields.Selection(
         selection_add=([
             ('tabla_ganancias', 'Tabla Ganancias'),
             ('partner_tax', 'Alícuota en el Partner'),
-        ])
+        ]),
+        ondelete={'tabla_ganancias': lambda recs: recs.write({'withholding_type': 'none'}),
+                  'partner_tax': lambda recs: recs.write({'withholding_type': 'none'})}
     )
     # default_alicuot = fields.Float(
     #     'Alícuota por defecto',

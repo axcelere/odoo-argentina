@@ -75,7 +75,7 @@
         </div>
     </template>
 
-    <template id="report_invoice_document_with_payments" inherit_id="l10n_ar.report_invoice_document_with_payments">
+    <template id="report_invoice_document_with_payments" inherit_id="l10n_ar.report_invoice_document">
         <t t-if="o.ref" position="after">
             <t t-if="o._fields.get('purchase_order_number') and o.purchase_order_number">
                 <br/><strong>PO Number:</strong>
