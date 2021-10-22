@@ -59,11 +59,11 @@ class AccountMove(models.Model):
             # otherwise use date as a number
             if re.search(r'\d', document_number):
                 invoice_number = document_number
-        elif "-" in document_number:
+        elif document_number and "-" in document_number:
             splited_number = document_number.split('-')
             invoice_number = splited_number.pop()
             point_of_sale = splited_number.pop()
-        elif "-" not in document_number and len(document_number) == 12:
+        elif document_number and "-" not in document_number and len(document_number) == 12:
             point_of_sale = document_number[:4]
             invoice_number = document_number[-8:]
         invoice_number = invoice_number and re.sub("[^0-9]", "", invoice_number)
