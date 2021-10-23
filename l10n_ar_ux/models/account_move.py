@@ -63,15 +63,15 @@ class AccountMove(models.Model):
             splited_number = document_number.split('-')
             invoice_number = splited_number.pop()
             point_of_sale = splited_number.pop()
-        elif document_number and "-" not in document_number and len(document_number) == 12:
+        elif document_number and"-" not in document_number and len(document_number) == 12:
             point_of_sale = document_number[:4]
             invoice_number = document_number[-8:]
         invoice_number = invoice_number and re.sub("[^0-9]", "", invoice_number)
         point_of_sale = point_of_sale and re.sub("[^0-9]", "", point_of_sale)
-        if not invoice_number or not point_of_sale:
-            raise ValidationError(_(
-                'No pudimos obtener el número de factura y de punto de venta para %s %s. Verifique que tiene un número '
-                'cargado similar a "00001-00000001"') % (document_type_code, document_number))
+        # if not invoice_number or not point_of_sale:
+        #     raise ValidationError(_(
+        #         'No pudimos obtener el número de factura y de punto de venta para %s %s. Verifique que tiene un número '
+        #         'cargado similar a "00001-00000001"') % (document_type_code, document_number))
         return {
                 'invoice_number': int(invoice_number),
                 'point_of_sale': int(point_of_sale),
