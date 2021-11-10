@@ -10,10 +10,10 @@
     'depends': [
         'account_debit_note',
         'l10n_ar',
-        # 'account_check',
+        'account_check',
         # for payment group report
-        # 'account_withholding',
-        # 'account_payment_group_document',
+        'account_withholding',
+        'account_payment_group_document',
     ],
     'data': [
         'data/res_currency_data.xml',
