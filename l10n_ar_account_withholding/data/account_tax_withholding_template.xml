@@ -37,7 +37,7 @@
                     'tag_ids': [(6, 0, [ref('l10n_ar_ux.tax_tag_a_cuenta_suss')])],
                 }),
             ]"/>
-            <field name="type_tax_use">customer</field>
+            <field name="type_tax_use">purchase</field>
             <field name="tax_group_id" ref="account.tax_group_taxes"/>
         </record>
 
