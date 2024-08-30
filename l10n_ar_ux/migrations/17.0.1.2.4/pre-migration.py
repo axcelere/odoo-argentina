@@ -11,6 +11,8 @@ def migrate(env, version):
         [
             'l10n_ar_ux.report_invoice_document',
             'l10n_ar_edi.report_invoice_document',
+            'l10n_ar_edi_ux.view_account_journal_tree',
+            'l10n_ar_edi_ux.view_account_payment_form_inherited',
         ],
         delete_childs=True
     )
