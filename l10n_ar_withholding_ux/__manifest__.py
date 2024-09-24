@@ -25,6 +25,7 @@
     'installable': True,
     'auto_install': False,
     'application': False,
+    'post_init_hook': '_l10n_ar_withholding_post_init',
     # 'post_init_hook': 'post_init_hook',
     'post_load': 'monkey_patch_synchronize_to_moves',
 }
