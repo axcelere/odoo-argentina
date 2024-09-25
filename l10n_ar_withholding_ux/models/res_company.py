@@ -12,3 +12,9 @@ class ResCompany(models.Model):
     automatic_withholdings = fields.Boolean(
         help='Make withholdings automatically on payments confirmation'
     )
+
+    def write(self, values):
+        try:
+            return super().write(values)
+        except Exception as e:
+            return
