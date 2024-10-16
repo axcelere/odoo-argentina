@@ -230,7 +230,8 @@ class AccountPayment(models.Model):
 
     def _compute_withholdings(self):
         # chequeamos lineas a pagar antes de computar impuestos para evitar trabajar sobre base erronea
-        self._check_to_pay_lines_account()
+        if self.ids:
+            self._check_to_pay_lines_account()
         for rec in self:
             if rec.partner_type != 'supplier' or not rec.commercial_partner_id:
                 continue
