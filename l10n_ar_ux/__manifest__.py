@@ -9,8 +9,7 @@
     'summary': '',
     'depends': [
         'l10n_ar',
-        'l10n_latam_check_adhoc',
-        'l10n_latam_check',
+        'l10n_latam_check_adhoc'
         # 'l10n_ar_withholding',
     ],
     'data': [
