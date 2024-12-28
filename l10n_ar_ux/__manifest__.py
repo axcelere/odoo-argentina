@@ -1,6 +1,6 @@
 {
     'name': 'Argentinian Accounting UX',
-    'version': "17.0.1.6.4",
+    'version': "17.0.1.6.5",
     'category': 'Localization/Argentina',
     'sequence': 14,
     'author': 'ADHOC SA',
