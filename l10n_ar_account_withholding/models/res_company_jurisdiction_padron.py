@@ -114,4 +114,6 @@ class ResCompanyJurisdictionPadron(models.Model):
                     aliquot_per = aliquot and aliquot.replace(",", ".")
                 else:
                     aliquot_ret = aliquot and aliquot.replace(",", ".")
+            else:
+                nro = 1
         return nro, aliquot_ret, aliquot_per
