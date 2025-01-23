@@ -97,4 +97,11 @@ class AccountMove(models.Model):
         # eliminamos todo lo que viene después '(' que es un sufijo que odoo agrega y que nosotros agregamos para
         # forzar unicidad con cambios de approach al ir migrando de versiones
         document_number = document_number.split('(')[0]
+        # Dividir por '-'
+        parts = document_number.split('-')
+
+        # Verificar si hay más de dos grupos y quedarte con los últimos dos
+        if len(parts) > 2:
+            document_number = '-'.join(parts[-2:])
+
         return super()._l10n_ar_get_document_number_parts(document_number, document_type_code)
