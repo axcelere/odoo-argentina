@@ -103,5 +103,8 @@ class AccountMove(models.Model):
         # Verificar si hay más de dos grupos y quedarte con los últimos dos
         if len(parts) > 2:
             document_number = '-'.join(parts[-2:])
+        parts = document_number.split(' ')
+        if len(parts) > 1:
+            document_number = parts[-1]
 
         return super()._l10n_ar_get_document_number_parts(document_number, document_type_code)
