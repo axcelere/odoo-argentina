@@ -1,6 +1,6 @@
 {
     'name': 'Argentinian Accounting UX',
-    'version': "17.0.1.6.8",
+    'version': "17.0.1.7.0",
     'category': 'Localization/Argentina',
     'sequence': 14,
     'author': 'ADHOC SA',
@@ -9,7 +9,6 @@
     'summary': '',
     'depends': [
         'l10n_ar',
-        'l10n_latam_check_adhoc'
         # 'l10n_ar_withholding',
     ],
     'data': [
