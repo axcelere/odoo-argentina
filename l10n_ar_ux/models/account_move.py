@@ -3,6 +3,7 @@
 # directory
 ##############################################################################
 from odoo import models, fields, api, _
+from odoo.exceptions import UserError
 
 
 class AccountMove(models.Model):
@@ -108,3 +109,13 @@ class AccountMove(models.Model):
             document_number = parts[-1]
 
         return super()._l10n_ar_get_document_number_parts(document_number, document_type_code)
+
+    def button_cancel(self):
+        """
+        Evitamos que se pueda cancelar una factura que ya fue previamente confirmada y enviada a AFIP.
+        Este caso se da cuando dos usuarios están a la vez editando la misma factura, uno confirma
+        y el otro, sin refrescar, cancela.
+        """
+        if posted_in_afip := self.filtered(lambda x: x.state == "posted" and x.invoice_filter_type_domain == "sale" and x.l10n_ar_afip_auth_mode == "CAE" and x.l10n_ar_afip_auth_code):
+            raise UserError(_("No pueden cancelarse documentos ya validados en AFIP (%s).", ",".join(posted_in_afip.mapped('name'))))
+        return super().button_cancel()
