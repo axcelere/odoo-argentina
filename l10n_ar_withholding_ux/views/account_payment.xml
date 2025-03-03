@@ -10,8 +10,8 @@
             <group invisible="country_code != 'AR'" position="replace"/>
 
             <label for="amount" position="before">
-                <label for="withholdings_amount" readonly="state != 'draft'" invisible="is_internal_transfer or not use_payment_pro"/>
-                <div invisible="is_internal_transfer or not use_payment_pro">
+                <label for="withholdings_amount" readonly="state != 'draft'" invisible="is_internal_transfer"/>
+                <div invisible="is_internal_transfer">
                     <field name="withholdings_amount" string="Withholdings" class="oe_inline"/>
                     <button title="Re-computar retenciones a partir del 'Importe a Pagar'" icon="fa-refresh" type="object" name="compute_withholdings" invisible="is_internal_transfer or partner_type != 'supplier' or state not in ['draft']" class="oe_link"/>
                 </div>
