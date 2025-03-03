@@ -9,7 +9,7 @@
             <!-- sacamos grupo con retenciones nativas y creamos una nueva page -->
             <group invisible="country_code != 'AR'" position="replace"/>
 
-            <label for="payment_total" position="before">
+            <label for="amount" position="before">
                 <label for="withholdings_amount" readonly="state != 'draft'" invisible="is_internal_transfer or not use_payment_pro"/>
                 <div invisible="is_internal_transfer or not use_payment_pro">
                     <field name="withholdings_amount" string="Withholdings" class="oe_inline"/>
