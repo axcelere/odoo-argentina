@@ -5,7 +5,7 @@
         <field name="model">account.payment.register</field>
         <field name="inherit_id" ref="account.view_account_payment_register_form"/>
         <field name="arch" type="xml">
-            <group name="group2">
+            <group name="group2" position="inside">
                 <field name="l10n_ar_fiscal_position_id" options="{'no_create': True}" invisible="partner_type != 'supplier' or country_code != 'AR' or not can_edit_wizard or (can_group_payments and not group_payment)"/>
             </group>
         </field>
