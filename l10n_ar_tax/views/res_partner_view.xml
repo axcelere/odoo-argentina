@@ -1,14 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
-
-    <record model="ir.ui.view" id="view_partner_form">
-        <field name="name">res.partner.form.inherit</field>
-        <field name="inherit_id" ref="l10n_ar_withholding.view_partner_form"/>
+    <record model="ir.ui.view" id="view_partner_property_form">
+        <field name="name">res.partner.property.l10n_ar.tax.form.inherit</field>
+        <field name="inherit_id" ref="account.view_partner_property_form"/>
         <field name="model">res.partner</field>
         <field name="arch" type="xml">
-            <xpath expr="//field[@name='l10n_ar_partner_tax_ids']/.." position="attributes">
-                <attribute name="invisible">True</attribute>
-            </xpath>
             <xpath expr="//page[@name='accounting']/group" position="after">
                 <group string="Sale Perceptions">
                     <field name="l10n_ar_partner_perception_ids" nolabel="1" colspan="2">
@@ -31,11 +27,21 @@
                     </field>
                 </group>
             </xpath>
-
             <!-- TODO: MIGRAR A V18 -->
             <!-- <group name="others_col_1">
                 <field name="drei"/>
             </group> -->
+        </field>
+    </record>
+
+    <record model="ir.ui.view" id="view_partner_form">
+        <field name="name">res.partner.form.inherit</field>
+        <field name="inherit_id" ref="l10n_ar_withholding.view_partner_form"/>
+        <field name="model">res.partner</field>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='l10n_ar_partner_tax_ids']/.." position="attributes">
+                <attribute name="invisible">True</attribute>
+            </xpath>
         </field>
     </record>
 
