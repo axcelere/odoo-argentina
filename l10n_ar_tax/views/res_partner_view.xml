@@ -32,9 +32,10 @@
                 </group>
             </xpath>
 
-            <group name="others_col_1">
+            <!-- TODO: MIGRAR A V18 -->
+            <!-- <group name="others_col_1">
                 <field name="drei"/>
-            </group>
+            </group> -->
         </field>
     </record>
 
