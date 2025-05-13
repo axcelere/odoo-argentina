@@ -121,6 +121,23 @@ def migrate(cr, version):
                 # Sacar el tag de las líneas (sin borrar la línea entera)
                 repartition.tag_ids = [(3, tag.id)]
             env.cr.commit()  # importante si quieres asegurarte que se aplica antes del upgrade real
+    tag_xml_id = 'l10n_ar_ux.tag_tax_jurisdiccion_901'
+    try:
+        tag = env.ref(tag_xml_id)
+    except ValueError:
+        tag = None
+
+    if tag:
+        # Buscar todas las repartition lines que referencian este tag
+        repartition_lines = env['account.tax.repartition.line'].search([
+            ('tag_ids', 'in', [tag.id])
+        ])
+
+        if repartition_lines:
+            for repartition in repartition_lines:
+                # Sacar el tag de las líneas (sin borrar la línea entera)
+                repartition.tag_ids = [(3, tag.id)]
+            env.cr.commit()  # importante si quieres asegurarte que se aplica antes del upgrade real
 
     cr.execute("""
         DELETE FROM account_account_tag_account_move_line_rel
