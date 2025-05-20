@@ -143,4 +143,8 @@ def migrate(cr, version):
         DELETE FROM account_account_tag_account_move_line_rel
         WHERE account_account_tag_id IN (24,41)
     """)
-    env.cr.commit()  # importante si quieres asegurarte que se aplica antes del upgrade real
+    cr.execute("""
+        DELETE FROM account_account_tag_account_tax_repartition_line_rel
+        WHERE account_account_tag_id IN (24,41)
+    """)
+    env.cr.commit()
