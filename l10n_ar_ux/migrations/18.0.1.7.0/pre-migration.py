@@ -145,6 +145,6 @@ def migrate(cr, version):
     """)
     cr.execute("""
         DELETE FROM account_account_tag_account_tax_repartition_line_rel
-        WHERE account_account_tag_id IN (24,41,40,38)
+        WHERE account_account_tag_id IN (24,41,40,38,37)
     """)
     env.cr.commit()
