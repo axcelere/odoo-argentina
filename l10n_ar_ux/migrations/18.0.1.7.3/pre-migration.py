@@ -159,5 +159,17 @@ def migrate(cr, version):
     view = env.ref("stock_ux.product_template_form_view_procurement_button", raise_if_not_found=False)
     if view:
         view.unlink()
+    view = env.ref("l10n_ar_stock.product_template_form_view", raise_if_not_found=False)
+    if view:
+        view.unlink()
+    view = env.ref("l10n_ar_stock.product_uom_form_view", raise_if_not_found=False)
+    if view:
+        view.unlink()
+    view = env.ref("l10n_ar_stock.product_uom_tree_view", raise_if_not_found=False)
+    if view:
+        view.unlink()
+    view = env.ref("l10n_ar_stock.product_uom_categ_form_view", raise_if_not_found=False)
+    if view:
+        view.unlink()
 
     env.cr.commit()
