@@ -171,5 +171,11 @@ def migrate(cr, version):
     view = env.ref("l10n_ar_stock.product_uom_categ_form_view", raise_if_not_found=False)
     if view:
         view.unlink()
+    view = env.ref("l10n_ar_account_withholding.res_config_settings_view_form", raise_if_not_found=False)
+    if view:
+        view.unlink()
+    view = env.ref("l10n_ar_account_withholding.view_account_payment_form", raise_if_not_found=False)
+    if view:
+        view.unlink()
 
     env.cr.commit()
