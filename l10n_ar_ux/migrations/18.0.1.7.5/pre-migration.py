@@ -178,4 +178,30 @@ def migrate(cr, version):
     if view:
         view.unlink()
 
+    # Chequear si el modelo res.company tiene el campo
+    if "regimenes_ganancias_ids" in env["res.company"]._fields:
+        if "regimenes_ganancias_ids" not in env["res.config.settings"]._fields:
+            # Crear campo related dinámicamente
+            fields.Many2many(
+                comodel_name="account.wh.ganancias.regimen",  # <-- ajusta este comodel según lo que tengas en tu DB
+                relation="res_config_settings_regimenes_ganancias_rel",
+                column1="settings_id",
+                column2="regimen_id",
+                string="Regímenes de Ganancias",
+                related="company_id.regimenes_ganancias_ids",
+                readonly=False,
+            )._setup_regular_base(env["res.config.settings"])
+            env["ir.model.fields"].create({
+                "name": "regimenes_ganancias_ids",
+                "model_id": env["ir.model"].search([("model", "=", "res.config.settings")], limit=1).id,
+                "ttype": "many2many",
+                "relation": "res_config_settings_regimenes_ganancias_rel",
+                "field_description": "Regímenes de Ganancias (migrated)",
+            })
+            env.cr.commit()
+            _log_upgrade("Campo regimenes_ganancias_ids agregado a res.config.settings como related.")
+
+    else:
+        _log_upgrade("El campo regimenes_ganancias_ids no existe en res.company, se salta fix.")
+
     env.cr.commit()
