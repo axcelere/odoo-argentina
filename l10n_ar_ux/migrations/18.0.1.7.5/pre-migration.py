@@ -1,4 +1,4 @@
-from odoo import SUPERUSER_ID, api
+from odoo import SUPERUSER_ID, api, tools
 import logging
 _logger = logging.getLogger(__name__)
 
@@ -203,5 +203,39 @@ def migrate(cr, version):
 
     else:
         _log_upgrade("El campo regimenes_ganancias_ids no existe en res.company, se salta fix.")
+
+    tools.misc.log('🔄 [base_migration_utils] Fixing duplicated account_move names before upgrade...')
+
+    # Detect duplicates
+    cr.execute("""
+        SELECT name, journal_id, COUNT(*)
+        FROM account_move
+        WHERE state = 'posted' AND name != '/'
+        GROUP BY name, journal_id
+        HAVING COUNT(*) > 1
+    """)
+    duplicates = cr.fetchall()
+
+    if duplicates:
+        tools.misc.log(f'⚠️ Found {len(duplicates)} duplicate (name, journal_id) combinations in account_move. Fixing...')
+
+        # Rename duplicates, keeping the first and marking the rest with suffix
+        cr.execute("""
+            UPDATE account_move
+            SET name = name || '-DUP'
+            WHERE id IN (
+                SELECT id
+                FROM (
+                    SELECT id,
+                           ROW_NUMBER() OVER(PARTITION BY name, journal_id ORDER BY id) AS rn
+                    FROM account_move
+                    WHERE state = 'posted' AND name != '/'
+                ) t
+                WHERE t.rn > 1
+            )
+        """)
+        tools.misc.log('✅ account_move duplicates fixed successfully.')
+    else:
+        tools.misc.log('👌 No duplicates found in account_move.')
 
     env.cr.commit()
