@@ -177,6 +177,12 @@ def migrate(cr, version):
     view = env.ref("l10n_ar_account_withholding.view_account_payment_form", raise_if_not_found=False)
     if view:
         view.unlink()
+    view = env.ref("stock_ux.res_config_settings_view_form", raise_if_not_found=False)
+    if view:
+        view.unlink()
+    view = env.ref("stock_ux.view_company_form_mail_template", raise_if_not_found=False)
+    if view:
+        view.unlink()
 
     # Chequear si el modelo res.company tiene el campo
     if "regimenes_ganancias_ids" in env["res.company"]._fields:
