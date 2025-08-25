@@ -204,7 +204,7 @@ def migrate(cr, version):
     else:
         _logger.info("El campo regimenes_ganancias_ids no existe en res.company, se salta fix.")
 
-    tools.misc.log('🔄 [base_migration_utils] Fixing duplicated account_move names before upgrade...')
+    _logger.info('🔄 [base_migration_utils] Fixing duplicated account_move names before upgrade...')
 
     # Detect duplicates
     cr.execute("""
@@ -217,7 +217,7 @@ def migrate(cr, version):
     duplicates = cr.fetchall()
 
     if duplicates:
-        tools.misc.log(f'⚠️ Found {len(duplicates)} duplicate (name, journal_id) combinations in account_move. Fixing...')
+        _logger.info(f'⚠️ Found {len(duplicates)} duplicate (name, journal_id) combinations in account_move. Fixing...')
 
         # Rename duplicates, keeping the first and marking the rest with suffix
         cr.execute("""
@@ -234,8 +234,8 @@ def migrate(cr, version):
                 WHERE t.rn > 1
             )
         """)
-        tools.misc.log('✅ account_move duplicates fixed successfully.')
+        _logger.info('✅ account_move duplicates fixed successfully.')
     else:
-        tools.misc.log('👌 No duplicates found in account_move.')
+        _logger.info('👌 No duplicates found in account_move.')
 
     env.cr.commit()
