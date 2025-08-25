@@ -199,10 +199,10 @@ def migrate(cr, version):
                 "field_description": "Regímenes de Ganancias (migrated)",
             })
             env.cr.commit()
-            _log_upgrade("Campo regimenes_ganancias_ids agregado a res.config.settings como related.")
+            _logger.info("Campo regimenes_ganancias_ids agregado a res.config.settings como related.")
 
     else:
-        _log_upgrade("El campo regimenes_ganancias_ids no existe en res.company, se salta fix.")
+        _logger.info("El campo regimenes_ganancias_ids no existe en res.company, se salta fix.")
 
     tools.misc.log('🔄 [base_migration_utils] Fixing duplicated account_move names before upgrade...')
 
