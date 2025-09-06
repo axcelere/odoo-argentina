@@ -31,7 +31,7 @@
         "views/res_company_jurisdiction_padron_view.xml",
         "views/res_partner_view.xml",
         "views/account_tax_view.xml",
-        "views/report_payment_receipt_templates.xml",
+        #todo upgrade "views/report_payment_receipt_templates.xml",
         "views/l10n_ar_payment_withholding_views.xml",
         "views/account_fiscal_position_view.xml",
         # "wizard/account_payment_register_views.xml",
