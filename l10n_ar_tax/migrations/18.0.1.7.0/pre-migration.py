@@ -17,3 +17,10 @@ def migrate(cr, version):
     view = env.ref("l10n_latam_check.view_account_payment_register_form", raise_if_not_found=False)
     if view:
         view.unlink()
+
+    views = IrUiView.search([
+        ('arch_db', 'ilike', 'account.report_payment_receipt_document')
+    ])
+    views.unlink()
+
+    env.cr.commit()
