@@ -147,7 +147,6 @@ def migrate(cr, version):
     """)
     cr.execute("""
         DELETE FROM res_partner_arba_alicuot
-        WHERE tag_id IN (41)
     """)
     env.cr.commit()
 
