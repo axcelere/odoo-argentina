@@ -48,7 +48,7 @@ class AccountFiscalPositionL10nArTax(models.Model):
         taxes = self.env["account.tax"]
         for rec in self:
             if rec.webservice:
-                taxes += rec._get_tax_from_ws(partner, date)
+                taxes += rec.sudo()._get_tax_from_ws(partner, date)
             else:
                 taxes += rec.default_tax_id
         return taxes
@@ -61,6 +61,7 @@ class AccountFiscalPositionL10nArTax(models.Model):
     def _get_tax_domain(self, filter_tax_group=True):
         self.ensure_one()
         domain = self.env["account.tax"]._check_company_domain(self.fiscal_position_id.company_id)
+        domain += [("amount_type", "in", ["percent", "division"])]
         if filter_tax_group:
             domain += [("tax_group_id", "=", self.default_tax_id.tax_group_id.id)]
             if self.tax_type == "withholding":
@@ -84,8 +85,12 @@ class AccountFiscalPositionL10nArTax(models.Model):
         if not tax.active:
             tax.active = True
         if not tax:
-            # Usamos re.sub para reemplazar el patrón con el nuevo número seguido de '%'
-            name = re.sub(r"\b\d+(\.\d+)?\s*%", f"{rate}%", self.default_tax_id.name)
+            if "%" not in self.default_tax_id.name:
+                name = f"{self.default_tax_id.name} {rate}%"
+            else:
+                # Usamos re.sub para reemplazar el patrón con el nuevo número seguido de '%'
+                # Si ya tiene un porcentaje, lo reemplazamos
+                name = re.sub(r"\b\d+(\.\d+)?\s*%", f"{rate}%", self.default_tax_id.name)
 
             tax = self.default_tax_id.copy(
                 default={
@@ -144,13 +149,50 @@ class AccountFiscalPositionL10nArTax(models.Model):
         # si es base en data demo devolvemos una alicuota demo para que no falle la demo data
         if self.env.ref("base.user_demo", raise_if_not_found=False):
             return (2.5 if self.tax_type == "withholding" else 3.0, "VALOR DUMMY | dummy")
-        raise UserError(_("Falta configuración de credenciales de ADHOC para consulta de " "Alícuotas de AGIP"))
+        raise UserError(_("Falta configuración de credenciales de ADHOC para consulta de Alícuotas de AGIP"))
 
     def _get_arba_data(self, partner, date, to_date):
+        """Metodo que obtiene la alicuota de ARBA de un partner y fecha dado
+
+        :return: (float, string) alícuota y referencia
+
+        donde:
+            float valor alicuota (retencion o percepcion depende del caso)
+            string "numero comprobante codigohast GrupoRetencion/Percepcion"
+
+        Si hay un padron de alicuotas ya cargado en el sistema, lo usamos
+        para obtener la alícuota, sino consultamos el webservice de ARBA
+        """
         self.ensure_one()
 
         cuit = partner.ensure_vat()
         _logger.info("Getting ARBA data for cuit %s from date %s to date %s" % (date, to_date, cuit))
+
+        padron_file = self.env["res.company.jurisdiction.padron"].search(
+            [
+                ("state_id", "in", self.env.ref("base.state_ar_b").ids),
+                ("company_id", "=", self.fiscal_position_id.company_id.id),
+                "|",
+                ("l10n_ar_padron_from_date", "=", False),
+                ("l10n_ar_padron_from_date", "<=", date),
+                "|",
+                ("l10n_ar_padron_to_date", "=", False),
+                ("l10n_ar_padron_to_date", ">=", date),
+            ],
+            limit=1,
+        )
+        if padron_file:
+            nro, alicuot_ret, alicuot_per = padron_file._get_aliquit(partner)
+            if nro:
+                return (
+                    float(alicuot_ret.replace(",", "."))
+                    if self.tax_type == "withholding"
+                    else float(alicuot_per.replace(",", ".")),
+                    "Alicuota (archivo importado)",
+                )
+            else:
+                return None, "Alícuota no inscripto (archivo importado)"
+
         ws = self.fiscal_position_id.company_id.arba_connect()
         ws.ConsultarContribuyentes(date.strftime("%Y%m%d"), to_date.strftime("%Y%m%d"), cuit)
 
@@ -199,17 +241,15 @@ class AccountFiscalPositionL10nArTax(models.Model):
         # si no hay numero de comprobante entonces es porque no
         # figura en el padron, aplicamos alicuota no inscripto
         if ws.NumeroComprobante:
-            return (
-                float(ws.AlicuotaRetencion.replace(",", "."))
-                if self.tax_type == "withholding"
-                else float(ws.AlicuotaPercepcion.replace(",", ".")),
-                "%s | %s | %s"
-                % (
-                    ws.NumeroComprobante,
-                    ws.CodigoHash,
-                    ws.GrupoRetencion if self.tax_type == "withholding" else ws.GrupoPercepcion,
-                ),
+            tax_data = "%s | %s | %s" % (
+                ws.NumeroComprobante,
+                ws.CodigoHash,
+                ws.GrupoRetencion if self.tax_type == "withholding" else ws.GrupoPercepcion,
             )
+            if self.tax_type == "withholding":
+                return (float(ws.AlicuotaRetencion.replace(",", ".")) if ws.AlicuotaRetencion else None, tax_data)
+            else:
+                return (float(ws.AlicuotaPercepcion.replace(",", ".")) if ws.AlicuotaPercepcion else None, tax_data)
         else:
             return None, ws.CodigoHash
 
@@ -232,19 +272,29 @@ class AccountFiscalPositionL10nArTax(models.Model):
         payload = {"body": partner.vat}
         headers = {"content-type": "application/json"}
 
+        error_msg = self.env._(
+            "No pudimos obtener la alicuota del webservice de rentascordoba.\n\n"
+            "Para asignar la alícuota de Córdoba a un contacto, siga estos pasos:\n"
+            "1) Consulte la alícuota del contacto en: https://www.rentascordoba.gob.ar/gestiones/consulta-alicuota\n"
+            "2) Cree manualmente la alícuota en la vista formulario del Contacto (solapa 'Contabilidad').\n\n"
+            "En caso de dudas o si el problema persiste, comuníquese con nuestro equipo de Servicio de Asistencia.\n"
+            "Detalle del error:\n"
+        )
+
         # Realizar solicitud
         try:
             r = requests.post(url, data=json.dumps(payload), headers=headers, timeout=10)
-            json_body = r.json()
-        except requests.exceptions.Timeout:
-            msg = self.env._("Timeout error when getting data from rentascordoba.gob.ar")
-            _logger.warning("%s" % msg)
+        except requests.exceptions.Timeout as e:
+            msg = self.env._(error_msg + "Timeout error when getting data.")
+            _logger.warning("%s" % str(e))
             raise UserError("%s" % msg)
         except requests.exceptions.RequestException as e:
-            msg = self.env._("Error when contacting rentascordoba.gob.ar. The server answered: \n%s" % str(e))
-            _logger.warning("%s" % msg)
+            _logger.warning("%s" % str(e))
+            raise UserError("%s" % error_msg)
+        if r.status_code == 404:
+            msg = _(error_msg + "404 Not Found error.")
             raise UserError("%s" % msg)
-
+        json_body = r.json()
         code = json_body.get("errorCod")
         ref = json_body.get("message")
 

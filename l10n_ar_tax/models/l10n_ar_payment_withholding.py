@@ -2,7 +2,7 @@ from datetime import datetime
 
 from dateutil.relativedelta import relativedelta
 from odoo import _, api, fields, models
-from odoo.exceptions import UserError
+from odoo.exceptions import RedirectWarning, UserError
 
 
 class l10nArPaymentWithholding(models.Model):
@@ -33,14 +33,15 @@ class l10nArPaymentWithholding(models.Model):
     )
     def _compute_base_amount(self):
         """practicamente mismo codigo que en l10n_ar.payment.register.withholding pero usamos campos "selected_debt_"""
-        for wth in self:
+        self.payment_id._compute_to_pay_amount()
+        for wth in self.filtered(lambda x: x.payment_id.partner_type == "supplier"):
             # calculamos advance_amount
             # si el adelanto es negativo estamos pagando parcialmente una
             # factura y ocultamos el campo sin impuesto y el metodo _get_withholdable_advanced_amount nos devuelve
             # el proporcional descontando de el iva a lo que se esta pagando
             advance_amount = wth.payment_id.withholdable_advanced_amount
             tax = wth._get_withholding_tax()
-            if advance_amount < 0.0:
+            if advance_amount < 0.0 and wth.payment_id.to_pay_move_line_ids:
                 sorted_to_pay_lines = sorted(
                     wth.payment_id.to_pay_move_line_ids, key=lambda a: a.date_maturity or a.date
                 )
@@ -74,6 +75,13 @@ class l10nArPaymentWithholding(models.Model):
         # Computes the withholding tax amount provided a base and a tax
         # It is equivalent to: amount = self.base * self.tax_id.amount / 100
         tax = self._get_withholding_tax()
+        if not tax.amount_type:
+            raise UserError(
+                _(
+                    "El impuesto de retención %s no tiene un tipo de cálculo definido. Por favor, defina el tipo de cálculo en la configuración del impuesto."
+                )
+                % tax.name
+            )
         # if it is earnings withholding, then we accumulate the tax base for the period
         if tax.l10n_ar_tax_type in ["earnings", "earnings_scale"]:
             same_period_withholdings = self._get_same_period_withholdings_amount()
@@ -101,6 +109,21 @@ class l10nArPaymentWithholding(models.Model):
                 ref = f"{f(self.base_amount)} + {f(same_period_base)} - {f(tax.l10n_ar_non_taxable_amount)} = {f(self.base_amount + same_period_base - tax.l10n_ar_non_taxable_amount)} (no corresponde aplicar)"
             # if it is earnings scale we calculate according to the scale.
             if tax.l10n_ar_tax_type == "earnings_scale":
+                if not tax.l10n_ar_scale_id:
+                    raise RedirectWarning(
+                        _(
+                            "El impuesto de retención '%s' (id: %s) es de tipo escala de ganancias y no tiene definida una escala (campo l10n_ar_scale_id). Por favor, defina una escala en la configuración del impuesto."
+                        )
+                        % (tax.name, tax.id),
+                        {
+                            "view_mode": "form",
+                            "res_model": "account.tax",
+                            "type": "ir.actions.act_window",
+                            "res_id": tax.id,
+                            "views": [[False, "form"]],
+                        },
+                        _("Configurar impuesto"),
+                    )
                 escala = self.env["l10n_ar.earnings.scale.line"].search(
                     [
                         ("scale_id", "=", tax.l10n_ar_scale_id.id),
@@ -128,7 +151,7 @@ class l10nArPaymentWithholding(models.Model):
 
     @api.depends("base_amount", "tax_id")
     def _compute_amount(self):
-        for line in self:
+        for line in self.filtered(lambda r: r.payment_id.partner_type == "supplier"):
             # TODO: usar _get_withholding_tax no deberia ser necesario
             # si al pasar a draft modificamos la linea
             tax_id = line._get_withholding_tax()
@@ -211,3 +234,21 @@ class l10nArPaymentWithholding(models.Model):
         """Return the applicable withheld tax"""
         self.ensure_one()
         return self.tax_id
+
+    ##########
+    # ACTIONS
+    ##########
+
+    def action_l10n_ar_payment_withholding_tree(self):
+        """Open a tree view showing previous withholdings."""
+        same_period_withholdings = (
+            self.env["account.move.line"].search(self._get_same_period_withholdings_domain()).withholding_id
+        )
+        return {
+            "name": "Previous Withholdings",
+            "type": "ir.actions.act_window",
+            "res_model": "l10n_ar.payment.withholding",
+            "view_mode": "list",
+            "view_id": self.env.ref("l10n_ar_tax.view_l10n_ar_payment_withholding_tree").id,
+            "domain": [("id", "in", same_period_withholdings.ids)],
+        }

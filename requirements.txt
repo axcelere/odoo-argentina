@@ -1,3 +1,1 @@
-httplib2==0.20.4
-git+https://github.com/ingadhoc/pyafipws@py3k
-git+https://github.com/OCA/openupgradelib/@master
+git+https://github.com/ingadhoc/pyafipws.git@odoo18

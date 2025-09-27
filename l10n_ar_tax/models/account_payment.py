@@ -2,6 +2,8 @@
 # For copyright and license notices, see __manifest__.py file in module root
 # directory
 ##############################################################################
+from collections import defaultdict
+
 from odoo import Command, _, api, fields, models
 from odoo.exceptions import UserError
 
@@ -51,7 +53,10 @@ class AccountPayment(models.Model):
             else:
                 address = rec.partner_id
             rec.l10n_ar_fiscal_position_id = (
-                self.env["account.fiscal.position"].with_company(rec.company_id)._get_fiscal_position(address)
+                self.env["account.fiscal.position"]
+                .with_company(rec.company_id)
+                .with_context(l10n_ar_withholding=True)
+                ._get_fiscal_position(address)
             )
 
     @api.depends("l10n_ar_withholding_line_ids.amount")
@@ -79,7 +84,8 @@ class AccountPayment(models.Model):
     #     for rec in (self - latam_checks):
     @api.onchange("withholdings_amount")
     def _onchange_withholdings(self):
-        for rec in self.filtered(lambda x: not x._is_latam_check_payment()):
+        # solo queremos re-computar en pagos de proveedor
+        for rec in self.filtered(lambda x: x.partner_type == "supplier" and not x._is_latam_check_payment()):
             # el compute_withholdings o el _compute_withholdings?
             amount = rec.amount + rec.payment_difference
             # no pasamos a importes negativos (por ej. si se ponene retenciones grandes) porque es molesto
@@ -136,8 +142,7 @@ class AccountPayment(models.Model):
                     "account_id": account_id,
                     "amount_currency": sign * amount_currency,
                     "balance": sign * line.amount,
-                    # este campo no existe mas
-                    # 'tax_base_amount': sign * line.base_amount,
+                    "tax_base_amount": sign * line.base_amount,
                     "tax_repartition_line_id": tax_repartition_line_id,
                 }
             )
@@ -177,7 +182,14 @@ class AccountPayment(models.Model):
                 if not line.name or line.name == "/":
                     if line.tax_id.l10n_ar_withholding_sequence_id:
                         commands.append(
-                            Command.update(line.id, {"name": line.tax_id.l10n_ar_withholding_sequence_id.next_by_id()})
+                            Command.update(
+                                line.id,
+                                {
+                                    "name": line.tax_id.l10n_ar_withholding_sequence_id.next_by_id()
+                                    if line.amount
+                                    else "/"
+                                },
+                            )
                         )
                     else:
                         raise UserError(
@@ -215,11 +227,11 @@ class AccountPayment(models.Model):
             account_id = self.env["account.account"].browse(line["account_id"])
             # if line['account_id'] in liquidity_accounts:
             if account_id.account_type in valid_account_types:
-                if self.payment_type == "inbound":
+                if self.payment_type == "inbound" and "credit" in line:
                     line["credit"] += wth_amount
                     if not self._use_counterpart_currency():
                         line["amount_currency"] -= wth_amount / conversion_rate
-                elif self.payment_type == "outbound":
+                elif self.payment_type == "outbound" and "debit" in line:
                     line["debit"] += wth_amount
                     if not self._use_counterpart_currency():
                         line["amount_currency"] += wth_amount / conversion_rate
@@ -286,7 +298,7 @@ class AccountPayment(models.Model):
     @api.depends("l10n_ar_fiscal_position_id", "partner_id", "company_id", "date")
     def _compute_l10n_ar_withholding_line_ids(self):
         # metodo completamente analogo a payment.register._compute_l10n_ar_withholding_ids
-        for rec in self:
+        for rec in self.filtered(lambda x: x.partner_type == "supplier"):
             date = rec.date or fields.Date.today()
             withholdings = [Command.clear()]
             if rec.l10n_ar_fiscal_position_id.l10n_ar_tax_ids:
@@ -348,3 +360,24 @@ class AccountPayment(models.Model):
         if self.company_id.country_id.code == "AR" and not self.is_internal_transfer:
             return "l10n_ar_tax.report_payment_receipt_document"
         return super()._get_name_receipt_report(report_xml_id)
+
+    def _get_payment_bundle_key(self):
+        if self.company_id.country_id.code == "AR" and self.env.context.get("print_in_bundles"):
+            return f"{self.company_id.id}-{self.partner_id.id}-{self.payment_type}-{self.currency_id.id if self.other_currency else self.counterpart_currency_id.id}"
+        return self.id
+
+    def _get_payment_bundles(self):
+        """Returns a dictionary of payment bundles, where the key is a tuple
+        of (company_id, partner_id, payment_type, currency_id) and the value
+        is a recordset of account.payment."""
+        bundles = defaultdict(lambda: self.env["account.payment"])
+        for rec in self:
+            bundles[rec._get_payment_bundle_key()] += rec
+        return bundles
+
+    def _select_bundle(self, bundles):
+        """Selects a bundle from the dictionary of payment bundles based on
+        the current record's company_id, partner_id, payment_type, and
+        currency_id."""
+        self.ensure_one()
+        return bundles.get(self._get_payment_bundle_key())
