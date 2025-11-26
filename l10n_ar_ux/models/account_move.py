@@ -122,6 +122,9 @@ class AccountMove(models.Model):
         parts = document_number.split(' ')
         if len(parts) > 1:
             document_number = parts[-1]
+        if '-' not in document_number:
+            document_number = ''.join(c for c in document_number if c.isdigit())
+            document_number = '%s - 1' % (document_number)
 
         return super()._l10n_ar_get_document_number_parts(document_number, document_type_code)
 
